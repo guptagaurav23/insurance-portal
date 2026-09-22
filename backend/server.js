@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const mysql = require("mysql2/promise");
 
 const {
   S3Client,
@@ -15,7 +16,16 @@ const USE_S3 = process.env.USE_S3 === "true";
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 
-// Local upload storage
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "insurance_portal",
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 5
+});
+
 const uploadDir = path.join(__dirname, "uploads");
 
 if (!fs.existsSync(uploadDir)) {
@@ -26,20 +36,16 @@ const upload = multer({
   dest: uploadDir
 });
 
-// S3 client
 const s3 = new S3Client({
   region: AWS_REGION
 });
 
-// Serve frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// Health check
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
-// Upload API
 app.post("/upload", upload.single("document"), async (req, res) => {
   try {
     if (!req.file) {
@@ -48,53 +54,52 @@ app.post("/upload", upload.single("document"), async (req, res) => {
       });
     }
 
-    // -----------------------------
-    // LOCAL MODE
-    // -----------------------------
+    let s3Key = null;
 
     if (!USE_S3) {
       console.log("Local upload:");
       console.log("File:", req.file.originalname);
       console.log("Saved:", req.file.path);
-
-      return res.status(200).json({
-        message: "File uploaded locally",
-        filename: req.file.originalname
-      });
     }
 
-    // -----------------------------
-    // S3 MODE
-    // -----------------------------
+    if (USE_S3) {
+      if (!S3_BUCKET_NAME) {
+        return res.status(500).json({
+          error: "S3_BUCKET_NAME is not configured"
+        });
+      }
 
-    if (!S3_BUCKET_NAME) {
-      return res.status(500).json({
-        error: "S3_BUCKET_NAME is not configured"
-      });
+      const fileBuffer = fs.readFileSync(req.file.path);
+
+      s3Key = `uploads/${Date.now()}-${req.file.originalname}`;
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: S3_BUCKET_NAME,
+          Key: s3Key,
+          Body: fileBuffer,
+          ContentType: req.file.mimetype
+        })
+      );
+
+      fs.unlinkSync(req.file.path);
+
+      console.log("S3 upload successful:");
+      console.log("Bucket:", S3_BUCKET_NAME);
+      console.log("Key:", s3Key);
     }
 
-    const fileBuffer = fs.readFileSync(req.file.path);
-
-    const s3Key = `uploads/${Date.now()}-${req.file.originalname}`;
-
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: S3_BUCKET_NAME,
-        Key: s3Key,
-        Body: fileBuffer,
-        ContentType: req.file.mimetype
-      })
+    await db.execute(
+      "INSERT INTO documents (filename) VALUES (?)",
+      [req.file.originalname]
     );
 
-    // Delete temporary local file
-    fs.unlinkSync(req.file.path);
-
-    console.log("S3 upload successful:");
-    console.log("Bucket:", S3_BUCKET_NAME);
-    console.log("Key:", s3Key);
+    console.log("Database record inserted:", req.file.originalname);
 
     return res.status(200).json({
-      message: "File uploaded to S3",
+      message: USE_S3
+        ? "File uploaded to S3 and database"
+        : "File uploaded locally and database",
       filename: req.file.originalname,
       s3Key: s3Key
     });
@@ -108,7 +113,6 @@ app.post("/upload", upload.single("document"), async (req, res) => {
   }
 });
 
-// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(
     `Insurance Portal running at http://localhost:${PORT}`
