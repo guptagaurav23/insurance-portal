@@ -1,8 +1,8 @@
+```js
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const mysql = require("mysql2/promise");
 
 const {
   S3Client,
@@ -14,17 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 80;
 const USE_S3 = process.env.USE_S3 === "true";
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
-const AWS_REGION = process.env.AWS_REGION || "us-east-1";
-
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || "insurance_portal",
-  port: 3306,
-  waitForConnections: true,
-  connectionLimit: 5
-});
+const AWS_REGION = process.env.AWS_REGION || "eu-north-1";
 
 const uploadDir = path.join(__dirname, "uploads");
 
@@ -89,17 +79,10 @@ app.post("/upload", upload.single("document"), async (req, res) => {
       console.log("Key:", s3Key);
     }
 
-    await db.execute(
-      "INSERT INTO documents (filename) VALUES (?)",
-      [req.file.originalname]
-    );
-
-    console.log("Database record inserted:", req.file.originalname);
-
     return res.status(200).json({
       message: USE_S3
-        ? "File uploaded to S3 and database"
-        : "File uploaded locally and database",
+        ? "File uploaded to S3"
+        : "File uploaded locally",
       filename: req.file.originalname,
       s3Key: s3Key
     });
@@ -107,7 +90,7 @@ app.post("/upload", upload.single("document"), async (req, res) => {
   } catch (error) {
     console.error("Upload error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Upload failed"
     });
   }
@@ -118,3 +101,4 @@ app.listen(PORT, "0.0.0.0", () => {
     `Insurance Portal running at http://localhost:${PORT}`
   );
 });
+```
