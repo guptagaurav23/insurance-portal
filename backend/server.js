@@ -1,4 +1,3 @@
-```js
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
@@ -61,7 +60,7 @@ app.post("/upload", upload.single("document"), async (req, res) => {
 
       const fileBuffer = fs.readFileSync(req.file.path);
 
-      s3Key = `uploads/${Date.now()}-${req.file.originalname}`;
+      s3Key = "uploads/" + Date.now() + "-" + req.file.originalname;
 
       await s3.send(
         new PutObjectCommand({
@@ -98,7 +97,6 @@ app.post("/upload", upload.single("document"), async (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(
-    `Insurance Portal running at http://localhost:${PORT}`
+    "Insurance Portal running at http://localhost:" + PORT
   );
 });
-```
