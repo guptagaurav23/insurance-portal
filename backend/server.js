@@ -10,7 +10,7 @@ const {
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 const USE_S3 = process.env.USE_S3 === "true";
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
