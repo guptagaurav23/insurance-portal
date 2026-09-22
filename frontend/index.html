@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance Document Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<style>
+  body {
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 100px auto;
+  padding: 30px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+h1 {
+  color: #1f3c88;
+}
+
+input {
+  margin: 20px 0;
+}
+
+button {
+  padding: 12px 20px;
+  background: #1f3c88;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #162d68;
+}
+
+#message {
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+</style>
+<body>
+
+  <div class="container">
+    <h1>Insurance Document Portal</h1>
+
+    <p>Upload your identity proof, claim form, or supporting document.</p>
+
+    <form id="uploadForm">
+      <input
+        type="file"
+        id="document"
+        name="document"
+        required
+      >
+
+      <button type="submit">Upload Document</button>
+    </form>
+
+    <p id="message"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
